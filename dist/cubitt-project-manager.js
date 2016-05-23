@@ -33,25 +33,25 @@ createRoute.handler(function (routingContext) {
         }
     };
     sd.getClusterWideMap("actors", function (res, res_err) {
-        if (res_err != null) {
+        if (res_err !== null) {
             console.log("Failed to obtain actor map: " + res_err);
             response.setStatusCode(500).end();
             return;
         }
         var actors = res;
         actors.putIfAbsent(id.toString(), true, function (res, res_err) {
-            if (res_err != null) {
+            if (res_err !== null) {
                 console.log("Failed to check/set value in actor map: " + res_err);
                 response.setStatusCode(500).end();
                 return;
             }
-            if (res != null) {
+            if (res !== null) {
                 console.log("Actor already exists");
                 response.setStatusCode(409).end();
                 return;
             }
             client.getConnection(function (conn, conn_err) {
-                if (conn_err != null) {
+                if (conn_err !== null) {
                     console.log("Error connecting to database: " + conn_err);
                     response.setStatusCode(500).end();
                     return;
@@ -69,6 +69,12 @@ createRoute.handler(function (routingContext) {
                             response.setStatusCode(500).end();
                             return;
                         }
+                        vertx.deployVerticle("src/query-builder/dist/cubitt-query-builder.js", options, function (res, res_err) {
+                            if (res_err) {
+                                console.log("Query handler deployment failed! - " + res_err);
+                                response.setStatusCode(500).end();
+                            }
+                        });
                         vertx.deployVerticle("src/command-handler/dist/cubitt-command-manager.js", options, function (res, res_err) {
                             if (res_err === null) {
                                 response.putHeader("Location", "/projects/" + id.toString());
@@ -85,7 +91,7 @@ createRoute.handler(function (routingContext) {
         });
     });
 });
-router.route("/projects/:projectid").handler(function (routingContext) {
+router.post("/projects/:projectid").handler(function (routingContext) {
     var transaction = routingContext.getBodyAsJson();
     var response = routingContext.response();
     response.putHeader("content-type", "application/json");
@@ -95,7 +101,7 @@ router.route("/projects/:projectid").handler(function (routingContext) {
         return;
     }
     sd.getClusterWideMap("actors", function (res, res_err) {
-        if (res_err != null) {
+        if (res_err !== null) {
             console.log("Failed to obtain actor map: " + res_err);
             response.setStatusCode(500).end();
             return;
@@ -107,7 +113,7 @@ router.route("/projects/:projectid").handler(function (routingContext) {
                 response.setStatusCode(500).end();
                 return;
             }
-            if (res == null) {
+            if (res === null) {
                 console.log("No actor with id " + projectId + " is known");
                 response.setStatusCode(404).end();
                 return;
@@ -130,6 +136,31 @@ router.route("/projects/:projectid").handler(function (routingContext) {
                 }
             });
         });
+    });
+});
+router.get("/projects/:projectid/:version").handler(function (routingContext) {
+    var response = routingContext.response();
+    response.putHeader("content-type", "application/json");
+    var projectId = Common.Guid.parse(routingContext.request().getParam("projectid"));
+    if (projectId === null) {
+        response.setStatusCode(404).end();
+        return;
+    }
+    var version;
+    if (routingContext.request().getParam("version") === "latest") {
+        version = "latest";
+    }
+    else {
+        version = parseInt(routingContext.request().getParam("version"));
+    }
+    eb.send("projects.query." + projectId, version, function (res, res_err) {
+        if (res_err) {
+            console.log("Query message delivery failure! : " + res_err);
+            response.setStatusCode(500).end();
+        }
+        else {
+            response.setStatusCode(200).end(res.body());
+        }
     });
 });
 server.requestHandler(router.accept).listen(8080);

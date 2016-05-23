@@ -81,5 +81,5 @@ interface WebSocket
   frameHandler(handler: (e: WebSocketFrame) => void): WebSocket;
 }
 
-declare var WebSocket: {
-}
+/*declare var WebSocket: {
+}*/

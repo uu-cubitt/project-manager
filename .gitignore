@@ -33,6 +33,12 @@ node_modules
 # Visual Studio Code workspace settings
 .vscode
 
+# Generated distributables
+dist
+
+# Typescript typings excluding the vertx typings
+src/typings/*
+!src/typings/vertx/
 
 # Typedoc default documentation folder
 doc
