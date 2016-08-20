@@ -6,6 +6,7 @@ var eb = vertx.eventBus();
 var router = Router.router(vertx);
 var Common = require("cubitt-common");
 var JDBCClient = require("vertx-jdbc-js/jdbc_client");
+var StaticHandler = require("vertx-web-js/static_handler");
 var sd = vertx.sharedData();
 var postgresUser = process.env.POSTGRES_USER || "postgres";
 var postgresPass = process.env.POSTGRES_PASSWORD || "";
@@ -30,7 +31,8 @@ createRoute.handler(function (routingContext) {
     var options = {
         "config": {
             "id": id
-        }
+        },
+        "worker": true
     };
     sd.getClusterWideMap("actors", function (res, res_err) {
         if (res_err !== null) {

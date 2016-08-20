@@ -1,5 +1,7 @@
 declare var require: any;
 declare var process: any;
+declare var __dirname;
+
 import Router = require("vertx-web-js/router");
 import BodyHandler = require("vertx-web-js/body_handler");
 let server = vertx.createHttpServer();
@@ -7,6 +9,8 @@ let eb = vertx.eventBus();
 let router = Router.router(vertx);
 import * as Common from "cubitt-common";
 import JDBCClient = require("vertx-jdbc-js/jdbc_client");
+
+let StaticHandler = require("vertx-web-js/static_handler");
 let sd = vertx.sharedData();
 
 let postgresUser = process.env.POSTGRES_USER || "postgres";
@@ -37,7 +41,8 @@ createRoute.handler(function (routingContext: RoutingContext): any {
 	let options: Object = {
 		"config" : {
 			"id" : id
-		}
+		},    
+    "worker": true
 	};
 	// Check if we already have such an project actor
 	sd.getClusterWideMap("actors", function (res, res_err) {
